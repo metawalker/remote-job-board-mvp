@@ -89,8 +89,7 @@ export function JobList() {
                     +{job.skills.length - 5} more
                   </Tag>
                 )}
-              </div>
-            )}
+              </div>            )}
             
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -102,8 +101,17 @@ export function JobList() {
                     Verified
                   </Tag>
                 )}
-              </div>
-              <Button>Apply Now</Button>
+              </div>              {job.apply_url ? (
+                <Button 
+                  onClick={() => job.apply_url && window.open(job.apply_url, '_blank', 'noopener,noreferrer')}
+                >
+                  Apply Now
+                </Button>
+              ) : (
+                <Button disabled>
+                  No Apply Link
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

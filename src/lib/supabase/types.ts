@@ -53,8 +53,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-      }
-      jobs: {
+      }      jobs: {
         Row: {
           id: string
           company_id: string
@@ -66,6 +65,7 @@ export interface Database {
           employment_type: string
           remote_type: string
           skills: string[]
+          apply_url: string | null
           posted_at: string
           expires_at: string | null
           is_active: boolean
@@ -83,6 +83,7 @@ export interface Database {
           employment_type: string
           remote_type: string
           skills?: string[]
+          apply_url?: string | null
           posted_at?: string
           expires_at?: string | null
           is_active?: boolean
@@ -100,6 +101,7 @@ export interface Database {
           employment_type?: string
           remote_type?: string
           skills?: string[]
+          apply_url?: string | null
           posted_at?: string
           expires_at?: string | null
           is_active?: boolean
