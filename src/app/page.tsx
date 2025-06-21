@@ -20,7 +20,7 @@ export default function Home() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                We're looking for an experienced frontend developer to join our remote team...
+                We&apos;re looking for an experienced frontend developer to join our remote team...
               </p>
               <div className="flex flex-wrap gap-2">
                 <Tag>React</Tag>
