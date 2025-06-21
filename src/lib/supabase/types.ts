@@ -10,12 +10,56 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      companies: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          website: string | null
+          logo_url: string | null
+          industry: string | null
+          size_category: string | null
+          location: string | null
+          founded_year: number | null
+          is_verified: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          website?: string | null
+          logo_url?: string | null
+          industry?: string | null
+          size_category?: string | null
+          location?: string | null
+          founded_year?: number | null
+          is_verified?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          website?: string | null
+          logo_url?: string | null
+          industry?: string | null
+          size_category?: string | null
+          location?: string | null
+          founded_year?: number | null
+          is_verified?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
       jobs: {
         Row: {
           id: string
+          company_id: string
           title: string
           description: string
-          company: string
           location: string
           salary_min: number | null
           salary_max: number | null
@@ -30,15 +74,15 @@ export interface Database {
         }
         Insert: {
           id?: string
+          company_id: string
           title: string
           description: string
-          company: string
           location: string
           salary_min?: number | null
           salary_max?: number | null
           employment_type: string
           remote_type: string
-          skills: string[]
+          skills?: string[]
           posted_at?: string
           expires_at?: string | null
           is_active?: boolean
@@ -47,9 +91,9 @@ export interface Database {
         }
         Update: {
           id?: string
+          company_id?: string
           title?: string
           description?: string
-          company?: string
           location?: string
           salary_min?: number | null
           salary_max?: number | null
@@ -148,12 +192,12 @@ export interface Database {
     }
     Functions: {
       [_ in never]: never
-    }
-    Enums: {
+    }    Enums: {
       employment_type: 'full-time' | 'part-time' | 'contract' | 'internship'
       remote_type: 'remote' | 'hybrid' | 'on-site'
       application_status: 'pending' | 'reviewing' | 'interview' | 'rejected' | 'accepted'
       experience_level: 'entry' | 'mid' | 'senior' | 'lead' | 'executive'
+      company_size: 'startup' | 'small' | 'medium' | 'large' | 'enterprise'
     }
     CompositeTypes: {
       [_ in never]: never

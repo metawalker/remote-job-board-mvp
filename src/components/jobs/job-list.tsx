@@ -62,12 +62,11 @@ export function JobList() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {jobs.map((job) => (
-        <Card key={job.id}>
+      {jobs.map((job) => (        <Card key={job.id}>
           <CardHeader>
             <CardTitle>{job.title}</CardTitle>
             <CardDescription>
-              {job.company} • {job.location} • {job.employment_type}
+              {job.companies?.name} • {job.location} • {job.employment_type}
               {job.salary_min && job.salary_max && (
                 <> • ${job.salary_min.toLocaleString()}-${job.salary_max.toLocaleString()}</>
               )}
@@ -94,9 +93,16 @@ export function JobList() {
             )}
             
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                Posted {formatDistanceToNow(new Date(job.posted_at))} ago
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  Posted {formatDistanceToNow(new Date(job.posted_at))} ago
+                </span>
+                {job.companies?.is_verified && (
+                  <Tag variant="default" className="text-xs">
+                    Verified
+                  </Tag>
+                )}
+              </div>
               <Button>Apply Now</Button>
             </div>
           </CardContent>

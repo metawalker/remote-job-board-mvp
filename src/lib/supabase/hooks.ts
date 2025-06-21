@@ -38,7 +38,9 @@ export function useUser() {
 }
 
 export function useJobs() {
-  const [jobs, setJobs] = useState<Database['public']['Tables']['jobs']['Row'][]>([])
+  const [jobs, setJobs] = useState<(Database['public']['Tables']['jobs']['Row'] & {
+    companies: Database['public']['Tables']['companies']['Row']
+  })[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const supabase = useSupabase()
@@ -48,7 +50,20 @@ export function useJobs() {
       try {
         const { data, error } = await supabase
           .from('jobs')
-          .select('*')
+          .select(`
+            *,
+            companies (
+              id,
+              name,
+              description,
+              website,
+              logo_url,
+              industry,
+              size_category,
+              location,
+              is_verified
+            )
+          `)
           .eq('is_active', true)
           .order('posted_at', { ascending: false })
 
