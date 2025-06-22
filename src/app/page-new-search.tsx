@@ -6,8 +6,6 @@ import { useUser, useJobSearch } from '@/lib/supabase/hooks'
 import { UserMenu } from '@/components/auth/user-menu'
 import { JobList } from '@/components/jobs/job-list'
 import { JobSearch } from '@/components/jobs/job-search'
-import { QuickSearch } from '@/components/jobs/quick-search'
-import { SearchSuggestions } from '@/components/jobs/search-suggestions'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
@@ -26,27 +24,12 @@ export default function Home() {
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [currentSearchParams, setCurrentSearchParams] = useState<any>({})
 
-  // Handle quick search from suggestions
-  const handleQuickSearch = (query: string, type: 'title' | 'location' | 'skills') => {
-    const filters = {
-      title: type === 'title' ? query : '',
-      location: type === 'location' ? query : '',
-      employmentType: '',
-      skills: type === 'skills' ? query : '',
-      salaryMin: '',
-      salaryMax: ''
-    }
-    
-    handleSearch(filters)
-  }
-
   // Handle search functionality
   const handleSearch = (filters: SearchFilters) => {
     const searchParams = {
       title: filters.title || undefined,
       location: filters.location || undefined,
       employmentType: filters.employmentType || undefined,
-      skills: filters.skills || undefined,
       salaryMin: filters.salaryMin ? parseInt(filters.salaryMin) : undefined,
       salaryMax: filters.salaryMax ? parseInt(filters.salaryMax) : undefined,
       page: 1
@@ -89,33 +72,17 @@ export default function Home() {
               <Link href="/auth">
                 <Button>Sign In</Button>
               </Link>
-            )}          </div>
+            )}
+          </div>
         </div>
 
         {/* Search Section */}
-        {isSearchMode ? (
-          <JobSearch 
-            onSearch={handleSearch}
-            onClear={handleClearSearch}
-            loading={searchLoading}
-            totalResults={totalCount}
-          />
-        ) : (
-          <QuickSearch />
-        )}
-
-        {/* Search Suggestions - only show when not in search mode */}
-        {!isSearchMode && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">Browse by Category</h3>
-              <p className="text-muted-foreground">
-                Find jobs by popular titles, skills, or locations
-              </p>
-            </div>
-            <SearchSuggestions onQuickSearch={handleQuickSearch} />
-          </div>
-        )}
+        <JobSearch 
+          onSearch={handleSearch}
+          onClear={handleClearSearch}
+          loading={searchLoading}
+          totalResults={isSearchMode ? totalCount : undefined}
+        />
 
         {/* Jobs Section */}
         <div className="space-y-6">

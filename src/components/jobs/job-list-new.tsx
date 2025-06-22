@@ -122,9 +122,10 @@ export function JobList({ searchMode = false, searchData }: JobListProps) {
               <p className="text-sm text-muted-foreground line-clamp-3">
                 {job.description}
               </p>
-                {job.skills && job.skills.length > 0 && (
+              
+              {job.skills && job.skills.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {job.skills.slice(0, 5).map((skill: string, index: number) => (
+                  {job.skills.slice(0, 5).map((skill, index) => (
                     <Tag key={index} variant="outline">
                       {skill}
                     </Tag>

@@ -3,7 +3,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/lib/supabase/types'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { User } from '@supabase/supabase-js'
 
 export function useSupabase() {
@@ -80,4 +80,87 @@ export function useJobs() {
   }, [supabase])
 
   return { jobs, loading, error, refetch: () => setLoading(true) }
+}
+
+// Search parameters interface
+interface JobSearchParams {
+  title?: string
+  location?: string
+  employmentType?: string
+  skills?: string
+  salaryMin?: number
+  salaryMax?: number
+  page?: number
+  limit?: number
+}
+
+// Enhanced job search hook with filtering
+export function useJobSearch() {
+  const [jobs, setJobs] = useState<(Database['public']['Tables']['jobs']['Row'] & {
+    companies: Database['public']['Tables']['companies']['Row']
+  })[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [totalCount, setTotalCount] = useState(0)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false
+  })
+
+  const searchJobs = useCallback(async (searchParams: JobSearchParams = {}) => {
+    setLoading(true)
+    setError(null)
+
+    try {      // Build query parameters
+      const params = new URLSearchParams()
+      if (searchParams.title) params.append('title', searchParams.title)
+      if (searchParams.location) params.append('location', searchParams.location)
+      if (searchParams.employmentType) params.append('type', searchParams.employmentType)
+      if (searchParams.skills) params.append('skills', searchParams.skills)
+      if (searchParams.salaryMin) params.append('salary_min', searchParams.salaryMin.toString())
+      if (searchParams.salaryMax) params.append('salary_max', searchParams.salaryMax.toString())
+      if (searchParams.page) params.append('page', searchParams.page.toString())
+      if (searchParams.limit) params.append('limit', searchParams.limit.toString())
+
+      const response = await fetch(`/api/jobs?${params.toString()}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch jobs')
+      }
+
+      const data = await response.json()
+      
+      // Transform the response to match our expected format
+      const transformedJobs = data.jobs.map((job: any) => ({
+        ...job,
+        companies: job.company // API returns 'company' but we expect 'companies'
+      }))
+
+      setJobs(transformedJobs)
+      setTotalCount(data.pagination.total)
+      setPagination({
+        page: data.pagination.page,
+        totalPages: data.pagination.totalPages,
+        hasNextPage: data.pagination.hasNextPage,
+        hasPreviousPage: data.pagination.hasPreviousPage
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      setJobs([])
+      setTotalCount(0)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return {
+    jobs,
+    loading,
+    error,
+    totalCount,
+    pagination,
+    searchJobs
+  }
 }

@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tag } from '@/components/ui/tag'
+import Link from 'next/link'
 
 interface PendingJob {
   id: string
@@ -216,12 +217,16 @@ export default function JobReviewTab({
                   className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
 
-                <div className="flex-1">
-                  {/* Job Header */}
+                <div className="flex-1">                  {/* Job Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {job.title}
+                        <Link 
+                          href={`/jobs/${job.id}`}
+                          className="hover:text-primary transition-colors cursor-pointer"
+                        >
+                          {job.title}
+                        </Link>
                       </h3>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-gray-700 font-medium">

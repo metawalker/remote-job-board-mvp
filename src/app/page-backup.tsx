@@ -2,23 +2,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useUser, useJobSearch } from '@/lib/supabase/hooks'
+import { useUser, useJobSearch } from '@/lib\supabase\hooks'
 import { UserMenu } from '@/components/auth/user-menu'
 import { JobList } from '@/components/jobs/job-list'
 import { JobSearch } from '@/components/jobs/job-search'
-import { QuickSearch } from '@/components/jobs/quick-search'
-import { SearchSuggestions } from '@/components/jobs/search-suggestions'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-
-interface SearchFilters {
-  title: string
-  location: string
-  employmentType: string
-  skills: string
-  salaryMin: string
-  salaryMax: string
-}
 
 export default function Home() {
   const { user, loading } = useUser()
@@ -26,27 +15,12 @@ export default function Home() {
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [currentSearchParams, setCurrentSearchParams] = useState<any>({})
 
-  // Handle quick search from suggestions
-  const handleQuickSearch = (query: string, type: 'title' | 'location' | 'skills') => {
-    const filters = {
-      title: type === 'title' ? query : '',
-      location: type === 'location' ? query : '',
-      employmentType: '',
-      skills: type === 'skills' ? query : '',
-      salaryMin: '',
-      salaryMax: ''
-    }
-    
-    handleSearch(filters)
-  }
-
   // Handle search functionality
-  const handleSearch = (filters: SearchFilters) => {
+  const handleSearch = (filters: any) => {
     const searchParams = {
       title: filters.title || undefined,
       location: filters.location || undefined,
       employmentType: filters.employmentType || undefined,
-      skills: filters.skills || undefined,
       salaryMin: filters.salaryMin ? parseInt(filters.salaryMin) : undefined,
       salaryMax: filters.salaryMax ? parseInt(filters.salaryMax) : undefined,
       page: 1
@@ -77,7 +51,7 @@ export default function Home() {
           <div className="space-y-4">
             <h1 className="text-4xl font-bold text-foreground">Remote Job Board MVP</h1>
             <p className="text-lg text-muted-foreground">
-              Find your next remote opportunity with advanced search
+              Find your next remote opportunity with Supabase integration
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -89,56 +63,47 @@ export default function Home() {
               <Link href="/auth">
                 <Button>Sign In</Button>
               </Link>
-            )}          </div>
+            )}
+          </div>
         </div>
 
         {/* Search Section */}
-        {isSearchMode ? (
-          <JobSearch 
-            onSearch={handleSearch}
-            onClear={handleClearSearch}
-            loading={searchLoading}
-            totalResults={totalCount}
-          />
-        ) : (
-          <QuickSearch />
-        )}
-
-        {/* Search Suggestions - only show when not in search mode */}
-        {!isSearchMode && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">Browse by Category</h3>
-              <p className="text-muted-foreground">
-                Find jobs by popular titles, skills, or locations
-              </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Search Jobs</CardTitle>
+            <CardDescription>Find your next remote opportunity</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="job-title">Job Title</Label>
+                <Input id="job-title" placeholder="e.g. Frontend Developer" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input id="location" placeholder="e.g. Remote, San Francisco" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="salary">Salary Range</Label>
+                <Input id="salary" placeholder="e.g. $80k-$120k" />
+              </div>
             </div>
-            <SearchSuggestions onQuickSearch={handleQuickSearch} />
-          </div>
-        )}
+            <div className="flex gap-2">
+              <Button>Search Jobs</Button>
+              <Button variant="outline">Clear Filters</Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Jobs Section */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">
-              {isSearchMode ? 'Search Results' : 'Latest Jobs'}
-            </h2>
+            <h2 className="text-2xl font-bold">Latest Jobs</h2>
             {user && (
               <Button variant="outline">Post a Job</Button>
             )}
           </div>
-          
-          <JobList 
-            searchMode={isSearchMode}
-            searchData={isSearchMode ? {
-              jobs,
-              loading: searchLoading,
-              error,
-              totalCount,
-              pagination,
-              onPageChange: handlePageChange
-            } : undefined}
-          />
+          <JobList />
         </div>
       </div>
     </div>

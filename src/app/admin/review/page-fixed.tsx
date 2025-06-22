@@ -7,6 +7,7 @@ import { useAdmin } from '@/lib/supabase/admin-hooks'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tag } from '@/components/ui/tag'
+import Link from 'next/link'
 
 export default function AdminReviewPage() {
   const router = useRouter()
@@ -191,10 +192,14 @@ export default function AdminReviewPage() {
                 <Card key={job.id} className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
+                      <div className="flex items-start justify-between mb-4">                        <div className="flex-1">
                           <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                            {job.title}
+                            <Link 
+                              href={`/jobs/${job.id}`}
+                              className="hover:text-primary transition-colors cursor-pointer"
+                            >
+                              {job.title}
+                            </Link>
                           </h3>
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-gray-700 font-medium">
