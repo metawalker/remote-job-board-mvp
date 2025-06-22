@@ -2,11 +2,14 @@
 'use client'
 
 import { useUser, useSupabase } from '@/lib/supabase/hooks'
+import { useAdmin } from '@/lib/supabase/admin-hooks'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import Link from 'next/link'
 
 export function UserMenu() {
   const { user, loading } = useUser()
+  const { isAdmin } = useAdmin()
   const supabase = useSupabase()
 
   const handleSignOut = async () => {
@@ -36,10 +39,22 @@ export function UserMenu() {
                 {user.user_metadata.full_name}
               </span>
             )}
+            {isAdmin && (
+              <span className="text-xs text-blue-600 font-medium">Admin</span>
+            )}
           </div>
-          <Button variant="outline" size="sm" onClick={handleSignOut}>
-            Sign Out
-          </Button>
+          <div className="flex flex-col space-y-2">
+            {isAdmin && (
+              <Link href="/admin/review">
+                <Button variant="outline" size="sm" className="text-xs">
+                  Admin Panel
+                </Button>
+              </Link>
+            )}
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
