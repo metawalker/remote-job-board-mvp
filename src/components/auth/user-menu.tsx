@@ -42,12 +42,11 @@ export function UserMenu() {
             {isAdmin && (
               <span className="text-xs text-blue-600 font-medium">Admin</span>
             )}
-          </div>
-          <div className="flex flex-col space-y-2">
+          </div>          <div className="flex flex-col space-y-2">
             {isAdmin && (
-              <Link href="/admin/review">
+              <Link href="/admin/dashboard">
                 <Button variant="outline" size="sm" className="text-xs">
-                  Admin Panel
+                  Admin Dashboard
                 </Button>
               </Link>
             )}

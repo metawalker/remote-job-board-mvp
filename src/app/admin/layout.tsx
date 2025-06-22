@@ -2,8 +2,10 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAdmin } from '@/lib/supabase/admin-hooks'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 export default function AdminLayout({
   children,
@@ -11,6 +13,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const pathname = usePathname()
   const { isAdmin, isLoading } = useAdmin()
 
   useEffect(() => {
@@ -36,5 +39,54 @@ export default function AdminLayout({
     return null
   }
 
-  return <>{children}</>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Admin Navigation */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-8">
+              <h1 className="text-xl font-semibold text-gray-900">Admin Panel</h1>
+              <nav className="flex space-x-4">
+                <Link
+                  href="/admin/review"
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    pathname === '/admin/review'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  Job Review
+                </Link>
+                <Link
+                  href="/admin/dashboard"
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    pathname === '/admin/dashboard'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  Dashboard
+                </Link>
+              </nav>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button
+                onClick={() => router.push('/')}
+                variant="outline"
+                size="sm"
+              >
+                Back to Site
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className="flex-1">
+        {children}
+      </div>
+    </div>
+  )
 }
