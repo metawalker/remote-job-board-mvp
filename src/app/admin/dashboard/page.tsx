@@ -12,6 +12,7 @@ import JobReviewTab from './components/JobReviewTab'
 import ScrapingTab from './components/ScrapingTab'
 import SettingsTab from './components/SettingsTab'
 import StatsTab from './components/StatsTab'
+import RSSScrapingSettings from './components/RSSScrapingSettings'
 
 interface StatsData {
   overview: {
@@ -153,10 +154,10 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="review">Job Review ({pendingJobs.length})</TabsTrigger>
             <TabsTrigger value="scraping">Scraping</TabsTrigger>
+            <TabsTrigger value="rss">RSS Feeds</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="stats">Statistics</TabsTrigger>
           </TabsList>
@@ -178,6 +179,10 @@ export default function AdminDashboardPage() {
               onRunScraper={runScraper}
               onRefreshJobs={fetchPendingJobs}
             />
+          </TabsContent>
+
+          <TabsContent value="rss">
+            <RSSScrapingSettings />
           </TabsContent>
 
           <TabsContent value="settings">

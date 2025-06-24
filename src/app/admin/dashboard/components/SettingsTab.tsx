@@ -49,66 +49,79 @@ export default function SettingsTab({
 }: SettingsTabProps) {  const [localSettings, setLocalSettings] = useState<ScrapingSettings | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-
+  
   // Only update local settings when scrapingSettings actually changes
   useEffect(() => {
-    if (scrapingSettings && JSON.stringify(scrapingSettings) !== JSON.stringify(localSettings)) {
+    if (scrapingSettings) {
       setLocalSettings({ ...scrapingSettings })
     }
-  }, [scrapingSettings, localSettings])
+  }, [scrapingSettings])
 
   const handleSave = useCallback(async () => {
     if (!localSettings) return
 
+    console.log('Saving settings:', localSettings)
     setSaving(true)
-    const success = await onSaveSettings(localSettings)
     
-    if (success) {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
-    } else {
-      alert('Failed to save settings. Please try again.')
+    try {
+      const success = await onSaveSettings(localSettings)
+      
+      if (success) {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      } else {
+        console.error('Save failed from hook')
+        alert('Failed to save some settings. Sources may have been updated successfully. Please refresh and check.')
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      alert('Failed to save settings. Please check the console for details and try again.')
     }
     
     setSaving(false)
   }, [localSettings, onSaveSettings])
-
   const updateSource = useCallback((sourceId: string, updates: Partial<ScrapingSettings['sources'][0]>) => {
-    if (!localSettings) return
-
-    setLocalSettings(prev => ({
-      ...prev!,
-      sources: prev!.sources.map(source =>
-        source.id === sourceId ? { ...source, ...updates } : source
-      )
-    }))
-  }, [localSettings])
+    setLocalSettings(prev => {
+      if (!prev) return prev
+      
+      return {
+        ...prev,
+        sources: prev.sources.map(source =>
+          source.id === sourceId ? { ...source, ...updates } : source
+        )
+      }
+    })
+  }, [])
 
   const addNewSource = useCallback(() => {
-    if (!localSettings) return
+    setLocalSettings(prev => {
+      if (!prev) return prev
+      
+      const newSource = {
+        id: `custom-${Date.now()}`,
+        name: 'Custom Source',
+        url: 'https://example.com/jobs',
+        enabled: false,
+        description: 'Custom job board source'
+      }
 
-    const newSource = {
-      id: `custom-${Date.now()}`,
-      name: 'Custom Source',
-      url: 'https://example.com/jobs',
-      enabled: false,
-      description: 'Custom job board source'
-    }
+      return {
+        ...prev,
+        sources: [...prev.sources, newSource]
+      }
+    })
+  }, [])
 
-    setLocalSettings(prev => ({
-      ...prev!,
-      sources: [...prev!.sources, newSource]
-    }))
-  }, [localSettings])
-
-  const removeSource = (sourceId: string) => {
-    if (!localSettings) return
-
-    setLocalSettings(prev => ({
-      ...prev!,
-      sources: prev!.sources.filter(source => source.id !== sourceId)
-    }))
-  }
+  const removeSource = useCallback((sourceId: string) => {
+    setLocalSettings(prev => {
+      if (!prev) return prev
+      
+      return {
+        ...prev,
+        sources: prev.sources.filter(source => source.id !== sourceId)
+      }
+    })
+  }, [])
 
   if (settingsLoading || !localSettings) {
     return (

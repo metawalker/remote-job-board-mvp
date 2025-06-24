@@ -28,7 +28,8 @@ async function isAdmin(supabase: ReturnType<typeof createClient>): Promise<boole
   }
 }
 
-export async function POST() {
+// GET - Load RSS scraping statistics
+export async function GET() {
   try {
     const supabase = createClient()
     
@@ -39,43 +40,48 @@ export async function POST() {
         { error: 'Unauthorized. Admin access required.' },
         { status: 401 }
       )
-    }    // Make internal request to scraper API with admin authorization
-    const scraperResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/scrape`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.CRON_SECRET || 'your-secure-secret-key-here-change-this-in-production'}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!scraperResponse.ok) {
-      const error = await scraperResponse.text()
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Scraper failed',
-          details: error 
-        },
-        { status: 500 }
-      )
     }
 
-    const scraperData = await scraperResponse.json()
+    // Get job statistics
+    const today = new Date()
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const startOfWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    // Jobs scraped today (assuming we had source column)
+    const { data: todayJobs } = await supabase
+      .from('jobs')
+      .select('id', { count: 'exact' })
+      .gte('created_at', startOfDay.toISOString())
+
+    // Jobs scraped this week
+    const { data: weekJobs } = await supabase
+      .from('jobs')
+      .select('id', { count: 'exact' })
+      .gte('created_at', startOfWeek.toISOString())
+
+    // Get recent scraping activity (mock data for now)
+    const lastScrapeTime = new Date(Date.now() - 30 * 60 * 1000).toISOString() // 30 minutes ago
+
+    const stats = {
+      totalFeeds: 4,
+      activeFeeds: 3,
+      totalJobsToday: todayJobs?.length || 0,
+      totalJobsWeek: weekJobs?.length || 0,
+      lastScrapeTime,
+      scrapingStatus: 'idle' as const
+    }
 
     return NextResponse.json({
       success: true,
-      summary: scraperData.summary,
-      results: scraperData.results,
-      message: scraperData.message
+      stats
     })
 
   } catch (error) {
-    console.error('Admin scraper error:', error)
+    console.error('RSS stats fetch error:', error)
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Internal server error' 
       },
       { status: 500 }
     )

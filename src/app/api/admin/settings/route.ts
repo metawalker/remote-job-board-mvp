@@ -40,12 +40,32 @@ export async function GET() {
         { error: 'Unauthorized. Admin access required.' },
         { status: 401 }
       )
-    }
+    }    // Get sources from scraping_sources table
+    const { data: sourcesData, error: sourcesError } = await supabase
+      .from('scraping_sources')
+      .select('id, name, url, enabled, description, priority')
+      .order('priority', { ascending: false })
 
-    // Try to get settings from database (you can store in a settings table)
-    // For now, return default settings
-    const defaultSettings = {
-      sources: [
+    // Get other settings from admin_settings table
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('admin_settings')
+      .select('setting_value')
+      .eq('setting_key', 'scraping_config')
+      .single()
+
+    let sources = []
+    if (sourcesData && !sourcesError && sourcesData.length > 0) {
+      // Transform scraping_sources data to frontend format
+      sources = sourcesData.map((source: any) => ({
+        id: source.id,
+        name: source.name,
+        url: source.url,
+        enabled: source.enabled,
+        description: source.description || ''
+      }))
+    } else {
+      // Fallback to default sources if table doesn't exist or is empty
+      sources = [
         {
           id: 'ycombinator',
           name: 'YCombinator Jobs',
@@ -67,22 +87,54 @@ export async function GET() {
           enabled: true,
           description: 'Google job postings with remote options'
         }
-      ],
-      schedule: {
-        enabled: false,
-        interval: 'daily',
-        time: '09:00',
-        timezone: 'UTC'
-      },
-      notifications: {
-        email: false,
-        slack: false,
-        webhookUrl: ''
-      },
-      limits: {
-        maxJobsPerRun: 100,
-        cooldownMinutes: 60
+      ]
+    }
+
+    // Get schedule, notifications, and limits from admin_settings
+    let otherSettings = {}
+    if (settingsData && !settingsError) {
+      const dbSettings = settingsData.setting_value
+      otherSettings = {
+        schedule: {
+          enabled: dbSettings.scheduling?.enabled || false,
+          interval: dbSettings.scheduling?.frequency || 'daily',
+          time: dbSettings.scheduling?.time || '09:00',
+          timezone: dbSettings.scheduling?.timezone || 'UTC'
+        },
+        notifications: {
+          email: dbSettings.notifications?.email?.enabled || false,
+          slack: dbSettings.notifications?.slack?.enabled || false,
+          webhookUrl: dbSettings.notifications?.slack?.webhook_url || ''
+        },
+        limits: {
+          maxJobsPerRun: dbSettings.rate_limits?.max_jobs_per_run || 100,
+          cooldownMinutes: dbSettings.rate_limits?.cooldown_minutes || 60
+        }
       }
+    } else {
+      // Default settings
+      otherSettings = {
+        schedule: {
+          enabled: false,
+          interval: 'daily',
+          time: '09:00',
+          timezone: 'UTC'
+        },
+        notifications: {
+          email: false,
+          slack: false,
+          webhookUrl: ''
+        },
+        limits: {
+          maxJobsPerRun: 100,
+          cooldownMinutes: 60
+        }
+      }
+    }
+
+    const defaultSettings = {
+      sources,
+      ...otherSettings
     }
 
     return NextResponse.json({
@@ -110,6 +162,7 @@ export async function POST(request: NextRequest) {
     // Check if user is authenticated and is admin
     const adminCheck = await isAdmin(supabase)
     if (!adminCheck) {
+      console.error('Admin check failed')
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required.' },
         { status: 401 }
@@ -117,18 +170,180 @@ export async function POST(request: NextRequest) {
     }
 
     const { settings } = await request.json()
+    console.log('Received settings:', JSON.stringify(settings, null, 2))
 
     if (!settings) {
+      console.error('No settings provided')
       return NextResponse.json(
         { error: 'Settings data required' },
         { status: 400 }
       )
-    }
+    }    // Get current user ID
+    const { data: { user } } = await supabase.auth.getUser()
+    console.log('Current user ID:', user?.id)
+      // Save sources to scraping_sources table
+    if (settings.sources && Array.isArray(settings.sources)) {
+      console.log('Processing sources update...')
+      
+      // First, get existing sources to determine which to update/insert/delete
+      const { data: existingSources, error: existingError } = await supabase
+        .from('scraping_sources')
+        .select('id, name')
 
-    // TODO: Save settings to database
-    // For now, just return success
-    // You could create an admin_settings table to store these
+      if (existingError) {
+        console.error('Error fetching existing sources:', existingError)
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Failed to fetch existing sources' 
+          },
+          { status: 500 }
+        )
+      }
+
+      const existingIds = existingSources?.map((s: any) => s.id) || []
+      const newSourceIds = settings.sources.map((s: any) => s.id).filter((id: any) => typeof id === 'string' && id.length > 0)
+
+      console.log('Existing IDs:', existingIds)
+      console.log('New source IDs:', newSourceIds)
+
+      // Delete sources that are no longer in the list
+      const sourcesToDelete = existingIds.filter((id: any) => !newSourceIds.includes(id))
+      if (sourcesToDelete.length > 0) {
+        console.log('Deleting sources:', sourcesToDelete)
+        const { error: deleteError } = await supabase
+          .from('scraping_sources')
+          .delete()
+          .in('id', sourcesToDelete)
+        
+        if (deleteError) {
+          console.error('Error deleting sources:', deleteError)
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Failed to delete sources' 
+            },
+            { status: 500 }
+          )
+        }
+      }
+
+      // Upsert sources
+      for (const source of settings.sources) {
+        if (!source.name || !source.url) {
+          console.log('Skipping invalid source:', source)
+          continue
+        }
+
+        console.log(`Processing source: ${source.name} (enabled: ${source.enabled})`)
+
+        const sourceData = {
+          name: source.name,
+          url: source.url,
+          enabled: source.enabled || false,
+          description: source.description || '',
+          updated_by: user?.id
+        }
+
+        if (source.id && existingIds.includes(source.id)) {
+          // Update existing source
+          console.log(`Updating existing source: ${source.id}`)
+          const { error: updateError } = await supabase
+            .from('scraping_sources')
+            .update(sourceData)
+            .eq('id', source.id)
+          
+          if (updateError) {
+            console.error('Error updating source:', updateError)
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: `Failed to update source: ${source.name}` 
+              },
+              { status: 500 }
+            )
+          }
+        } else {
+          // Insert new source
+          console.log(`Inserting new source: ${source.name}`)
+          const { error: insertError } = await supabase
+            .from('scraping_sources')
+            .insert({
+              ...sourceData,
+              created_by: user?.id
+            })
+          
+          if (insertError) {
+            console.error('Error inserting source:', insertError)
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: `Failed to insert source: ${source.name}` 
+              },
+              { status: 500 }
+            )
+          }
+        }
+      }
+      
+      console.log('Sources processing completed successfully')
+    }    // Save other settings (schedule, notifications, limits) to admin_settings
+    console.log('Processing other settings...')
+    const dbSettings = {
+      scheduling: {
+        enabled: settings.schedule?.enabled || false,
+        frequency: settings.schedule?.interval || 'daily',
+        time: settings.schedule?.time || '09:00',
+        timezone: settings.schedule?.timezone || 'UTC'
+      },
+      notifications: {
+        email: {
+          enabled: settings.notifications?.email || false,
+          address: '',
+          on_completion: true,
+          on_errors: true
+        },
+        slack: {
+          enabled: settings.notifications?.slack || false,
+          webhook_url: settings.notifications?.webhookUrl || '',
+          channel: '#general'
+        }
+      },
+      rate_limits: {
+        max_jobs_per_run: settings.limits?.maxJobsPerRun || 100,
+        cooldown_minutes: settings.limits?.cooldownMinutes || 60,
+        requests_per_minute: 30,
+        delay_between_requests: 2000,
+        max_concurrent: 3
+      }
+    }    // Save other settings to database
+    console.log('Saving other settings to admin_settings...')
+    console.log('DB Settings object:', JSON.stringify(dbSettings, null, 2))
+    console.log('User ID for update:', user?.id)
     
+    const { data: upsertResult, error: saveError } = await supabase
+      .from('admin_settings')
+      .upsert({
+        setting_key: 'scraping_config',
+        setting_value: dbSettings,
+        updated_by: user?.id
+      }, {
+        onConflict: 'setting_key'
+      })
+      .select()
+
+    console.log('Upsert result:', upsertResult)
+    
+    if (saveError) {
+      console.error('Settings save error:', saveError)
+      // Don't fail the entire request - sources were saved successfully
+      console.log('Sources were saved successfully, but other settings failed')
+      return NextResponse.json({
+        success: true,
+        message: 'Sources updated successfully. Other settings could not be saved.',
+        warning: 'Schedule, notifications, and limits settings could not be updated due to a database issue.'
+      })
+    }    console.log('Settings saved successfully')
     return NextResponse.json({
       success: true,
       message: 'Settings saved successfully'

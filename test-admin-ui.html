@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin Settings API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        .loading { background-color: #fff3cd; }
+        button { padding: 8px 16px; margin: 5px; }
+        textarea { width: 100%; height: 200px; font-family: monospace; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Admin Settings API Test</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: GET Settings (Expected: 401 Unauthorized)</h3>
+        <button onclick="testGetSettings()">Test GET /api/admin/settings</button>
+        <div id="get-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: POST Settings (Expected: 401 Unauthorized)</h3>
+        <button onclick="testPostSettings()">Test POST /api/admin/settings</button>
+        <div id="post-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: Scraping Sources API (Expected: 404 or 401)</h3>
+        <button onclick="testScrapingSources()">Test GET /api/admin/scraping-sources</button>
+        <div id="sources-result"></div>
+    </div>
+
+    <script>
+        async function testGetSettings() {
+            const resultDiv = document.getElementById('get-result');
+            resultDiv.className = 'loading';
+            resultDiv.innerHTML = '<p>Testing GET /api/admin/settings...</p>';
+            
+            try {
+                const response = await fetch('/api/admin/settings');
+                const data = await response.json();
+                
+                resultDiv.className = response.ok ? 'success' : 'error';
+                resultDiv.innerHTML = `
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+
+        async function testPostSettings() {
+            const resultDiv = document.getElementById('post-result');
+            resultDiv.className = 'loading';
+            resultDiv.innerHTML = '<p>Testing POST /api/admin/settings...</p>';
+            
+            const testSettings = {
+                settings: {
+                    sources: [
+                        {
+                            id: 'test-source',
+                            name: 'Test Source',
+                            url: 'https://example.com',
+                            enabled: true,
+                            description: 'Test source for API testing'
+                        }
+                    ],
+                    schedule: {
+                        enabled: false,
+                        interval: 'daily',
+                        time: '09:00',
+                        timezone: 'UTC'
+                    },
+                    notifications: {
+                        email: false,
+                        slack: false,
+                        webhookUrl: ''
+                    },
+                    limits: {
+                        maxJobsPerRun: 100,
+                        cooldownMinutes: 60
+                    }
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/admin/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testSettings)
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.className = response.ok ? 'success' : 'error';
+                resultDiv.innerHTML = `
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+
+        async function testScrapingSources() {
+            const resultDiv = document.getElementById('sources-result');
+            resultDiv.className = 'loading';
+            resultDiv.innerHTML = '<p>Testing GET /api/admin/scraping-sources...</p>';
+            
+            try {
+                const response = await fetch('/api/admin/scraping-sources');
+                const data = await response.json();
+                
+                resultDiv.className = response.ok ? 'success' : 'error';
+                resultDiv.innerHTML = `
+                    <p>Status: ${response.status} ${response.statusText}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
