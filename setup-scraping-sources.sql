@@ -91,6 +91,7 @@ INSERT INTO scraping_sources (name, url, enabled, description, priority)
 SELECT * FROM (VALUES 
     ('Y Combinator Jobs', 'https://www.ycombinator.com/jobs/search?remote=true', true, 'Remote jobs from Y Combinator startups', 'high'),
     ('We Work Remotely', 'https://weworkremotely.com/remote-jobs', true, 'Popular remote work job board', 'high'),
+    ('Google Jobs Search', 'https://www.google.com/search?q=remote+software+developer&ibp=htl;jobs', true, 'Google Jobs search results with advanced scraping (Puppeteer + Structured)', 'high'),
     ('Remote.co', 'https://remote.co/remote-jobs/', true, 'Curated remote job listings', 'medium'),
     ('AngelList (Wellfound)', 'https://wellfound.com/jobs?remote=true', false, 'Startup jobs with remote options', 'medium'),
     ('FlexJobs', 'https://www.flexjobs.com/remote-jobs', false, 'Professional remote and flexible jobs', 'low')

@@ -52,6 +52,8 @@ interface ScrapingTabProps {
   scrapingInProgress: boolean
   scrapingSettings: ScrapingSettings | null
   onRunScraper: () => Promise<ScrapingResult | null>
+  onRunURLScraper: () => Promise<ScrapingResult | null>
+  onRunRSSScraper: () => Promise<ScrapingResult | null>
   onRefreshJobs: () => Promise<void>
 }
 
@@ -59,12 +61,48 @@ export default function ScrapingTab({
   scrapingInProgress,
   scrapingSettings,
   onRunScraper,
+  onRunURLScraper,
+  onRunRSSScraper,
   onRefreshJobs
 }: ScrapingTabProps) {  const [lastScrapingResult, setLastScrapingResult] = useState<ScrapingResult | null>(null)
   const [scrapingHistory, setScrapingHistory] = useState<ScrapingResult[]>([])
 
   const handleRunScraper = async () => {
     const result = await onRunScraper()
+    if (result) {
+      setLastScrapingResult(result)
+      setScrapingHistory(prev => [
+        {
+          ...result,
+          timestamp: new Date().toISOString(),
+          id: Date.now()
+        },
+        ...prev.slice(0, 4) // Keep last 5 results
+      ])
+      // Refresh jobs after scraping
+      await onRefreshJobs()
+    }
+  }
+
+  const handleRunURLScraper = async () => {
+    const result = await onRunURLScraper()
+    if (result) {
+      setLastScrapingResult(result)
+      setScrapingHistory(prev => [
+        {
+          ...result,
+          timestamp: new Date().toISOString(),
+          id: Date.now()
+        },
+        ...prev.slice(0, 4) // Keep last 5 results
+      ])
+      // Refresh jobs after scraping
+      await onRefreshJobs()
+    }
+  }
+
+  const handleRunRSSScraper = async () => {
+    const result = await onRunRSSScraper()
     if (result) {
       setLastScrapingResult(result)
       setScrapingHistory(prev => [
@@ -94,27 +132,81 @@ export default function ScrapingTab({
     <div className="space-y-6">
       {/* Quick Actions */}
       <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Manual Scraping</h3>
-            <p className="text-sm text-gray-600">
-              Run the job scraper manually to find new job listings
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Manual Scraping</h3>
+          <p className="text-sm text-gray-600">
+            Run different types of scrapers manually to find new job listings
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {/* All Sources Scraper */}
+          <div className="p-4 border rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-2">All Sources</h4>
+            <p className="text-sm text-gray-600 mb-3">
+              Run all configured scrapers (URL + RSS)
             </p>
+            <Button
+              onClick={handleRunScraper}
+              disabled={scrapingInProgress}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              {scrapingInProgress ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Scraping...
+                </>
+              ) : (
+                'Run All Scrapers'
+              )}
+            </Button>
           </div>
-          <Button
-            onClick={handleRunScraper}
-            disabled={scrapingInProgress}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {scrapingInProgress ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Scraping...
-              </>
-            ) : (
-              'Run Scraper Now'
-            )}
-          </Button>
+
+          {/* URL Scraper */}
+          <div className="p-4 border rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-2">URL Sources</h4>
+            <p className="text-sm text-gray-600 mb-3">
+              Run only URL-based scrapers (Google Jobs, job boards)
+            </p>
+            <Button
+              onClick={handleRunURLScraper}
+              disabled={scrapingInProgress}
+              variant="outline"
+              className="w-full"
+            >
+              {scrapingInProgress ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                  Scraping...
+                </>
+              ) : (
+                'Run URL Scraper'
+              )}
+            </Button>
+          </div>
+
+          {/* RSS Scraper */}
+          <div className="p-4 border rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-2">RSS Feeds</h4>
+            <p className="text-sm text-gray-600 mb-3">
+              Run only RSS feed scrapers
+            </p>
+            <Button
+              onClick={handleRunRSSScraper}
+              disabled={scrapingInProgress}
+              variant="outline"
+              className="w-full"
+            >
+              {scrapingInProgress ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                  Scraping...
+                </>
+              ) : (
+                'Run RSS Scraper'
+              )}
+            </Button>
+          </div>
         </div>
 
         {scrapingInProgress && (
@@ -253,7 +345,8 @@ export default function ScrapingTab({
           <div>
             <h4 className="font-medium text-gray-900 mb-2">How it works</h4>
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Scraper visits configured job board URLs</li>
+              <li>• <strong>URL Scrapers:</strong> Visit job board URLs directly (Google Jobs, Y Combinator, etc.)</li>
+              <li>• <strong>RSS Scrapers:</strong> Parse RSS/XML feeds for job listings</li>
               <li>• Extracts job listings and company information</li>
               <li>• Creates jobs with status &quot;pending review&quot;</li>
               <li>• Avoids duplicates by checking existing jobs</li>
@@ -263,7 +356,8 @@ export default function ScrapingTab({
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Best Practices</h4>
             <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Run scraper during off-peak hours</li>
+              <li>• Run scrapers during off-peak hours</li>
+              <li>• Use separate scrapers to isolate issues</li>
               <li>• Review and approve jobs promptly</li>
               <li>• Monitor for duplicate companies</li>
               <li>• Check job quality and relevance</li>

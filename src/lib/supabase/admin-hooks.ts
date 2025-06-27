@@ -83,6 +83,8 @@ interface AdminHookReturn {
   approveJob: (jobId: string) => Promise<boolean>
   rejectJob: (jobId: string) => Promise<boolean>
   runScraper: () => Promise<ScrapingResult | null>
+  runURLScraper: () => Promise<ScrapingResult | null>
+  runRSSScraper: () => Promise<ScrapingResult | null>
   loadScrapingSettings: () => Promise<void>
   saveScrapingSettings: (settings: ScrapingSettings) => Promise<boolean>
   getScrapingStats: () => Promise<Record<string, unknown> | null>
@@ -181,6 +183,65 @@ export function useAdmin(): AdminHookReturn {
       }
     } catch (error) {
       console.error('Scraper error:', error)
+      return null
+    } finally {
+      setScrapingInProgress(false)
+    }
+  }, [isAdmin, scrapingInProgress, fetchPendingJobs])
+  // Run URL scraper
+  const runURLScraper = useCallback(async (): Promise<ScrapingResult | null> => {
+    if (!isAdmin || scrapingInProgress) return null
+
+    setScrapingInProgress(true)
+    try {
+      const response = await fetch('/api/scrape/url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ scraperType: 'all' })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        await fetchPendingJobs()
+        return data
+      } else {
+        console.error('Error running URL scraper:', data.error)
+        return null
+      }
+    } catch (error) {
+      console.error('URL scraper error:', error)
+      return null
+    } finally {
+      setScrapingInProgress(false)
+    }
+  }, [isAdmin, scrapingInProgress, fetchPendingJobs])
+  // Run RSS scraper
+  const runRSSScraper = useCallback(async (): Promise<ScrapingResult | null> => {
+    if (!isAdmin || scrapingInProgress) return null
+
+    setScrapingInProgress(true)
+    try {
+      const response = await fetch('/api/scrape/rss', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        await fetchPendingJobs()
+        return data
+      } else {
+        console.error('Error running RSS scraper:', data.error)
+        return null
+      }
+    } catch (error) {
+      console.error('RSS scraper error:', error)
       return null
     } finally {
       setScrapingInProgress(false)
@@ -356,6 +417,8 @@ export function useAdmin(): AdminHookReturn {
     approveJob,
     rejectJob,
     runScraper,
+    runURLScraper,
+    runRSSScraper,
     loadScrapingSettings,
     saveScrapingSettings,
     getScrapingStats

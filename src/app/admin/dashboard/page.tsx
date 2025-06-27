@@ -46,6 +46,8 @@ export default function AdminDashboardPage() {
     approveJob,
     rejectJob,
     runScraper,
+    runURLScraper,
+    runRSSScraper,
     loadScrapingSettings,
     saveScrapingSettings,
     getScrapingStats
@@ -177,6 +179,8 @@ export default function AdminDashboardPage() {
               scrapingInProgress={scrapingInProgress}
               scrapingSettings={scrapingSettings}
               onRunScraper={runScraper}
+              onRunURLScraper={runURLScraper}
+              onRunRSSScraper={runRSSScraper}
               onRefreshJobs={fetchPendingJobs}
             />
           </TabsContent>

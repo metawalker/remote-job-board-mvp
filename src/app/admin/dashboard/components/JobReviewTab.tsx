@@ -124,6 +124,16 @@ export default function JobReviewTab({
     })
   }
 
+  const toggleSelectAll = () => {
+    if (selectedJobs.size === pendingJobs.length) {
+      // If all jobs are selected, unselect all
+      setSelectedJobs(new Set())
+    } else {
+      // Select all jobs
+      setSelectedJobs(new Set(pendingJobs.map(job => job.id)))
+    }
+  }
+
   const formatSalary = (min: number | null, max: number | null) => {
     if (!min && !max) return 'Not specified'
     if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()}`
@@ -156,6 +166,18 @@ export default function JobReviewTab({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Select All / Unselect All */}
+          {pendingJobs.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={toggleSelectAll}
+              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+            >
+              {selectedJobs.size === pendingJobs.length ? 'Unselect All' : 'Select All'}
+            </Button>
+          )}
+          
           {selectedJobs.size > 0 && (
             <>
               <span className="text-sm text-gray-600">

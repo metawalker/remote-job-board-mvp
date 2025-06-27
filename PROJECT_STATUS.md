@@ -4,6 +4,14 @@
 
 Your advanced remote job board MVP with multi-source web scraper is now complete and ready for deployment.
 
+### ✅ LATEST UPDATE - Admin Dashboard Separate Scraping
+**Date: December 2024**
+- ✅ **Separate URL and RSS Scraping** - Added individual "Run URL Scraper" and "Run RSS Scraper" buttons
+- ✅ **Enhanced Admin UI** - Redesigned scraping tab with 3-column grid layout
+- ✅ **Granular Control** - Administrators can now run specific scraper types for better debugging
+- ✅ **Backward Compatibility** - All existing functionality preserved with "Run All Scrapers" option
+- ✅ **Improved Documentation** - Updated scraping information section with URL vs RSS details
+
 ## 📋 What We Built
 
 ### 🏗️ **Core Application**

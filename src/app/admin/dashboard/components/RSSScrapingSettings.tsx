@@ -62,6 +62,8 @@ export default function RSSScrapingSettings() {
   const [pendingJobs, setPendingJobs] = useState<JobReview[]>([])
   const [loading, setLoading] = useState(true)
   const [scraping, setScraping] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [hasChanges, setHasChanges] = useState(false)
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set())
   const [activeTab, setActiveTab] = useState('feeds')
   
@@ -108,26 +110,10 @@ export default function RSSScrapingSettings() {
     }
   }
 
-  const toggleRSSFeed = async (feedName: string, enabled: boolean) => {
-    try {
-      const response = await fetch('/api/admin/rss-feeds', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feedName, enabled })
-      })
-
-      if (response.ok) {
-        setRssFeeds(feeds => 
-          feeds.map(feed => 
-            feed.name === feedName ? { ...feed, enabled } : feed
-          )
-        )
-        showToast(`${feedName} ${enabled ? 'enabled' : 'disabled'}`, 'success')
-      } else {
-        throw new Error('Failed to update feed')
-      }
-    } catch (error) {      console.error('Error toggling RSS feed:', error)
-      showToast('Failed to update RSS feed', 'error')
+  const toggleRSSFeed = (feedName: string, enabled: boolean) => {
+    const feedIndex = rssFeeds.findIndex(feed => feed.name === feedName)
+    if (feedIndex !== -1) {
+      updateRSSFeed(feedIndex, { enabled })
     }
   }
 
@@ -225,6 +211,51 @@ export default function RSSScrapingSettings() {
     } catch (error) {      console.error('Error bulk rejecting jobs:', error)
       showToast('Failed to reject jobs', 'error')
     }
+  }
+
+  // Track changes to RSS feeds
+  const updateRSSFeed = (index: number, updates: Partial<RSSFeed>) => {
+    setRssFeeds(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], ...updates }
+      return updated
+    })
+    setHasChanges(true)
+  }
+
+  // Save RSS feed settings
+  const saveRSSSettings = async () => {
+    try {
+      setSaving(true)
+      
+      const response = await fetch('/api/admin/rss-feeds', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ feeds: rssFeeds })
+      })
+
+      if (response.ok) {
+        showToast('RSS settings saved successfully', 'success')
+        setHasChanges(false)
+        await loadRSSData() // Reload to get fresh data
+      } else {
+        const error = await response.json()
+        showToast(`Failed to save settings: ${error.message}`, 'error')
+      }
+    } catch (error) {
+      console.error('Error saving RSS settings:', error)
+      showToast('Failed to save RSS settings', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Reset changes
+  const resetChanges = () => {
+    loadRSSData()
+    setHasChanges(false)
   }
 
   if (loading) {
@@ -326,13 +357,37 @@ export default function RSSScrapingSettings() {
         <TabsContent value="feeds" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>RSS Feed Sources</CardTitle>
-              <CardDescription>
-                Configure which RSS feeds to scrape for remote jobs
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>RSS Feed Sources</CardTitle>
+                  <CardDescription>
+                    Configure which RSS feeds to scrape for remote jobs
+                  </CardDescription>
+                </div>
+                {hasChanges && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={resetChanges}
+                      disabled={saving}
+                    >
+                      Reset
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={saveRSSSettings}
+                      disabled={saving}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {rssFeeds.map((feed) => (
+              {rssFeeds.map((feed, index) => (
                 <div key={feed.name} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -456,6 +511,24 @@ export default function RSSScrapingSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <div className="flex justify-end gap-4">
+        <Button variant="outline" onClick={resetChanges} disabled={!hasChanges}>
+          Reset Changes
+        </Button>
+        <Button 
+          onClick={saveRSSSettings} 
+          disabled={!hasChanges || saving}
+          className="flex items-center gap-2"
+        >
+          {saving ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle className="h-4 w-4" />
+          )}
+          {saving ? 'Saving...' : 'Save Settings'}
+        </Button>
+      </div>
     </div>
   )
 }

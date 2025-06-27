@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { scrapeRSSFeeds } from '@/lib/scrapers/rss-scraper'
-import UnifiedGoogleJobsScraper from '@/lib/scrapers/unified-google-jobs-scraper'
+import ServerGoogleJobsScraper from '@/lib/scrapers/server-google-jobs-scraper'
 import type { GoogleJobListing } from '@/lib/scrapers/google-jobs-scraper'
 import axios from 'axios'
 import * as cheerio from 'cheerio'
@@ -648,15 +648,13 @@ export async function POST(request: NextRequest) {
 
       if (isGoogleJobsEnabled) {
         console.log('Starting Google Jobs scraping...')
-        const googleJobsScraper = new UnifiedGoogleJobsScraper()
+        const googleJobsScraper = new ServerGoogleJobsScraper()
         
-        // Use both approaches with moderate settings to avoid being blocked
+        // Use server-safe approach with moderate settings
         const googleJobs = await googleJobsScraper.scrapeJobs({
           query: 'remote software developer',
           location: 'United States',
           maxPages: 2,
-          usePuppeteer: true,
-          useStructured: true,
           maxResults: 30
         })
 
@@ -677,9 +675,6 @@ export async function POST(request: NextRequest) {
           jobsInserted: totalGoogleInserted,
           errors: []
         })
-
-        // Clean up resources
-        await googleJobsScraper.close()
 
         console.log(`Google Jobs scraping completed: ${googleJobs.length} jobs found, ${totalGoogleInserted} inserted`)
       } else {
