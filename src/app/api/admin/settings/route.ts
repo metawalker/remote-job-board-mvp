@@ -86,6 +86,13 @@ export async function GET() {
           url: 'https://careers.google.com/jobs/results/',
           enabled: true,
           description: 'Google job postings with remote options'
+        },
+        {
+          id: 'google-jobs',
+          name: 'Google Jobs Search',
+          url: 'https://www.google.com/search?q=remote+software+developer&ibp=htl;jobs',
+          enabled: true,
+          description: 'Google Jobs search results with advanced scraping (Puppeteer + Structured)'
         }
       ]
     }

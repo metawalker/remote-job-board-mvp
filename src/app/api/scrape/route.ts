@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { scrapeRSSFeeds } from '@/lib/scrapers/rss-scraper'
+import UnifiedGoogleJobsScraper from '@/lib/scrapers/unified-google-jobs-scraper'
+import type { GoogleJobListing } from '@/lib/scrapers/google-jobs-scraper'
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 
@@ -414,6 +416,77 @@ async function insertRSSJob(
   }
 }
 
+// Helper function to convert Google Jobs to ScrapedJob format
+function convertGoogleJobToScrapedJob(googleJob: GoogleJobListing): ScrapedJob {
+  return {
+    title: normalizeJobTitle(googleJob.title),
+    companyName: normalizeCompanyName(googleJob.company),
+    location: googleJob.location || 'Remote',
+    applyUrl: googleJob.applyUrl || '#',
+    source: 'Google Jobs'
+  }
+}
+
+// Helper function to insert Google Jobs (preserves additional fields)
+async function insertGoogleJob(
+  supabase: ReturnType<typeof createServiceClient>,
+  googleJob: GoogleJobListing
+): Promise<boolean> {
+  try {
+    // Create or find company
+    const companyId = await createOrFindCompany(supabase, googleJob.company)
+    if (!companyId) {
+      console.error('Failed to create/find company:', googleJob.company)
+      return false
+    }
+
+    // Check if job already exists (duplicate prevention)
+    const { data: existingJob } = await supabase
+      .from('jobs')
+      .select('id')
+      .eq('title', googleJob.title)
+      .eq('company_id', companyId)
+      .single()
+
+    if (existingJob) {
+      return false // Job already exists
+    }
+
+    // Prepare job data with Google Jobs specific fields
+    const jobData = {
+      title: normalizeJobTitle(googleJob.title),
+      company_id: companyId,
+      description: googleJob.description.substring(0, 5000), // Limit description length
+      location: googleJob.location || 'Remote',
+      employment_type: googleJob.employmentType || 'full-time',
+      remote_type: googleJob.remoteType || 'fully-remote',
+      skills: googleJob.skills || [],
+      salary_text: googleJob.salaryText,
+      apply_url: googleJob.applyUrl,
+      source: 'Google Jobs',
+      status: 'pending',
+      posted_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    // Insert job
+    const { error } = await supabase
+      .from('jobs')
+      .insert(jobData)
+
+    if (error) {
+      console.error('Error inserting Google job:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error processing Google job:', googleJob, error)
+    return false
+  }
+}
+
 // Insert scraped jobs into database
 async function insertScrapedJobs(
   supabase: ReturnType<typeof createServiceClient>,
@@ -559,6 +632,72 @@ export async function POST(request: NextRequest) {
         jobsFound: 0,
         jobsInserted: 0,
         errors: [error instanceof Error ? error.message : 'Unknown error']
+      })
+    }
+
+    // Scrape Google Jobs (check if enabled in admin settings)
+    try {
+      // Check if Google Jobs scraping is enabled
+      const { data: googleJobsSource } = await supabase
+        .from('scraping_sources')
+        .select('enabled')
+        .eq('id', 'google-jobs')
+        .single()
+
+      const isGoogleJobsEnabled = googleJobsSource?.enabled !== false // Default to true if not found
+
+      if (isGoogleJobsEnabled) {
+        console.log('Starting Google Jobs scraping...')
+        const googleJobsScraper = new UnifiedGoogleJobsScraper()
+        
+        // Use both approaches with moderate settings to avoid being blocked
+        const googleJobs = await googleJobsScraper.scrapeJobs({
+          query: 'remote software developer',
+          location: 'United States',
+          maxPages: 2,
+          usePuppeteer: true,
+          useStructured: true,
+          maxResults: 30
+        })
+
+        // Insert Google jobs using the specialized function
+        let totalGoogleInserted = 0
+        for (const job of googleJobs) {
+          try {
+            const result = await insertGoogleJob(supabase, job)
+            if (result) totalGoogleInserted++
+          } catch (error) {
+            console.error('Error inserting Google job:', error)
+          }
+        }
+
+        scrapeResults.push({
+          source: 'Google Jobs',
+          jobsFound: googleJobs.length,
+          jobsInserted: totalGoogleInserted,
+          errors: []
+        })
+
+        // Clean up resources
+        await googleJobsScraper.close()
+
+        console.log(`Google Jobs scraping completed: ${googleJobs.length} jobs found, ${totalGoogleInserted} inserted`)
+      } else {
+        console.log('Google Jobs scraping is disabled in admin settings')
+        scrapeResults.push({
+          source: 'Google Jobs',
+          jobsFound: 0,
+          jobsInserted: 0,
+          errors: ['Disabled in admin settings']
+        })
+      }
+    } catch (error) {
+      console.error('Google Jobs scraping failed:', error)
+      scrapeResults.push({
+        source: 'Google Jobs',
+        jobsFound: 0,
+        jobsInserted: 0,
+        errors: [error instanceof Error ? error.message : 'Google Jobs scraping failed']
       })
     }
 
